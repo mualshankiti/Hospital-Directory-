@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hospital Directory">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Hospital Directory</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#172033;--muted:#697386;--accent:#2463eb;--line:#e7ebf1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#101827;color:#fff;padding:calc(22px + env(safe-area-inset-top)) 20px 22px;border-radius:0 0 24px 24px}
+.eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#aebbd0;font-weight:700}
+h1{font-size:27px;margin:7px 0 16px;letter-spacing:-.6px}
+.search{width:100%;border:0;border-radius:13px;padding:15px 16px;font-size:16px;background:#fff;color:#172033;outline:none}
+main{max-width:760px;margin:0 auto;padding:18px 16px 40px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:5px 2px 13px}
+h2{font-size:17px;margin:0}.hint{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.category{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px 14px;min-height:105px;text-align:left;color:var(--ink);box-shadow:0 2px 8px #15213a08}
+.category:active,.row:active{transform:scale(.985)}
+.icon{font-size:23px;margin-bottom:11px}.cat-name{font-size:14px;font-weight:700}.cat-count{font-size:12px;color:var(--muted);margin-top:4px}
+.panel{display:none}.panel.active{display:block}
+.back{border:0;background:transparent;color:var(--accent);font-size:15px;font-weight:650;padding:4px 0 16px}
+.list{display:flex;flex-direction:column;gap:9px}
+.row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;align-items:center;gap:10px}
+.row-main{min-width:0;flex:1}.row-title{font-size:15px;font-weight:650}.row-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.ext{font-size:17px;font-weight:750;letter-spacing:.3px;color:#1e4fc0;border:0;background:transparent;padding:6px}
+.star,.small-btn{border:0;background:transparent;font-size:21px;padding:3px;color:#a0a8b5}
+.star.on{color:#e5a000}
+.empty{background:#fff;border:1px dashed #cbd3df;border-radius:15px;padding:22px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+.tabs{display:flex;gap:8px;margin:0 0 17px}
+.tab,.action{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:9px 13px;font-size:13px;font-weight:650}
+.tab.active{background:#e8efff;color:#1d4ed8;border-color:#cbd9ff}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.action.primary{background:#2463eb;color:white;border-color:#2463eb}
+.action.danger{color:#b42318}
+footer{text-align:center;color:#98a1af;font-size:11px;padding:24px 0}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:#10182788;display:none;align-items:flex-end;z-index:5}
+.modal.open{display:flex}.sheet{background:#fff;border-radius:22px 22px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow:auto}
+.sheet h2{margin-bottom:15px}.field{display:block;width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;font-size:16px;margin:8px 0 13px;background:white}
+label{font-size:13px;font-weight:650;color:#485266}.sheet-buttons{display:flex;gap:9px;margin-top:12px}.sheet-buttons button{flex:1}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.modal{align-items:center;justify-content:center}.sheet{max-width:480px;border-radius:22px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">Quick access · Private on this device</div><h1>Hospital Directory</h1><input id="search" class="search" type="search" placeholder="Search departments or extensions…" autocomplete="off"></header>
+<main>
+  <div class="actions">
+    <button class="action primary" id="add-entry">＋ Add extension</button>
+    <button class="action" id="backup">Export backup</button>
+    <button class="action" id="restore">Import backup</button>
+    <input id="restore-file" type="file" accept="application/json" class="hidden">
+  </div>
+  <section id="home"><div class="section-head"><h2>Departments</h2><span class="hint">Choose a category</span></div><div class="grid" id="categories"></div></section>
+  <section id="detail" class="panel"><button class="back" id="back">‹ All departments</button><div class="section-head"><h2 id="detail-title"></h2><span class="hint" id="detail-count"></span></div><div class="list" id="entries"></div></section>
+  <section id="results" class="panel"><div class="section-head"><h2>Search results</h2><span class="hint" id="result-count"></span></div><div class="list" id="matches"></div></section>
+  <section id="favorites" class="panel"><div class="section-head"><h2>Favorites</h2></div><div class="list" id="favorite-list"></div></section>
+  <div class="tabs"><button class="tab active" id="departments-tab">Departments</button><button class="tab" id="favorites-tab">★ Favorites</button></div>
+  <footer>Your directory entries and favorites are saved in this browser on this iPhone. Export a backup regularly.</footer>
+</main>
+<div class="modal" id="modal"><div class="sheet">
+  <h2 id="form-title">Add extension</h2>
+  <form id="entry-form">
+    <label>Department / category</label><select id="category" class="field"></select>
+    <label>Contact or location name</label><input id="entry-name" class="field" required placeholder="e.g. Neurology Ward">
+    <label>Extension number</label><input id="entry-ext" class="field" placeholder="e.g. 1234" inputmode="numeric">
+    <div class="sheet-buttons"><button type="button" class="action" id="cancel">Cancel</button><button type="submit" class="action primary">Save</button></div>
+  </form>
+</div></div>
+<script>
+const defaults=[
+ ["Medical Wards","✚"],["Surgical Wards","⚕"],["Specialties","＋"],["Emergency & ICU","✚"],["Laboratories","⚗"],["Radiology","▣"],["Other Services","☷"]
+];
+const STORE="hospital-directory-data-v2", FAV="hospital-directory-favs-v2";
+let data=JSON.parse(localStorage.getItem(STORE)||"null")||defaults.map(([name,icon])=>({name,icon,items:[]}));
+let favorites=JSON.parse(localStorage.getItem(FAV)||"[]"),current="home",editing=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function save(){localStorage.setItem(STORE,JSON.stringify(data));localStorage.setItem(FAV,JSON.stringify(favorites));}
+function all(){return data.flatMap(c=>c.items.map((x,i)=>({...x,category:c.name,key:c.name+"|"+x.id})))}
+function show(which){current=which;["home","detail","results","favorites"].forEach(x=>$(x).classList.toggle("active",x===which));$("home").style.display=which==="home"?"block":"none";$("departments-tab").classList.toggle("active",["home","detail","results"].includes(which));$("favorites-tab").classList.toggle("active",which==="favorites");}
+function renderHome(){$("categories").innerHTML=data.map((c,i)=>`<button class="category" data-i="${i}"><div class="icon">${esc(c.icon)}</div><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.items.length} extensions</div></button>`).join("");document.querySelectorAll(".category").forEach(b=>b.onclick=()=>openCat(+b.dataset.i));}
+function row(x){return `<div class="row"><div class="row-main"><div class="row-title">${esc(x.name)}</div><div class="row-sub">${esc(x.category)}</div></div><button class="star ${favorites.includes(x.key)?"on":""}" data-key="${esc(x.key)}">${favorites.includes(x.key)?"★":"☆"}</button><button class="ext copy" data-ext="${esc(x.ext)}">${x.ext?esc(x.ext):"—"}</button><button class="small-btn edit" data-key="${esc(x.key)}" aria-label="Edit">✎</button></div>`}
+function bind(){document.querySelectorAll(".star").forEach(b=>b.onclick=()=>{favorites=favorites.includes(b.dataset.key)?favorites.filter(k=>k!==b.dataset.key):[...favorites,b.dataset.key];save();refresh();});document.querySelectorAll(".copy").forEach(b=>b.onclick=async()=>{if(!b.dataset.ext)return;try{await navigator.clipboard.writeText(b.dataset.ext);let old=b.textContent;b.textContent="Copied";setTimeout(()=>b.textContent=old,900)}catch(e){alert("Copy not available in this browser.")}});document.querySelectorAll(".edit").forEach(b=>b.onclick=()=>editItem(b.dataset.key));}
+function openCat(i){let c=data[i];$("detail-title").textContent=c.name;$("detail-count").textContent=c.items.length+" extensions";$("entries").innerHTML=c.items.length?c.items.map(x=>row({...x,category:c.name,key:c.name+"|"+x.id})).join(""):'<div class="empty">No extensions here yet. Tap “Add extension” to add one.</div>';bind();show("detail");$("search").value="";}
+function refresh(){renderHome();if(current==="detail"){let i=data.findIndex(c=>c.name===$("detail-title").textContent);if(i>=0)openCat(i)}else if(current==="favorites")renderFav();else if(current==="results")search();}
+function search(){let q=$("search").value.trim().toLowerCase();if(!q){show("home");return}let found=all().filter(x=>(x.name+" "+x.category+" "+x.ext).toLowerCase().includes(q));$("matches").innerHTML=found.length?found.map(row).join(""):'<div class="empty">No matching extensions found.</div>';$("result-count").textContent=found.length+" results";show("results");bind();}
+function renderFav(){let found=all().filter(x=>favorites.includes(x.key));$("favorite-list").innerHTML=found.length?found.map(row).join(""):'<div class="empty">No favorites yet. Tap ☆ beside an extension to save it.</div>';bind();show("favorites");}
+function openForm(item=null){editing=item;$("form-title").textContent=item?"Edit extension":"Add extension";$("category").innerHTML=data.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("")+`<option value="__new">＋ New category…</option>`;$("entry-name").value=item?.name||"";$("entry-ext").value=item?.ext||"";if(item)$("category").value=item.category;$("modal").classList.add("open");}
+function editItem(key){let [cat,id]=key.split("|");let c=data.find(c=>c.name===cat),item=c?.items.find(x=>x.id===id);if(item)openForm({...item,category:cat});}
+$("entry-form").onsubmit=e=>{e.preventDefault();let cat=$("category").value;if(cat==="__new"){cat=prompt("New category name:");if(!cat)return;let found=data.find(c=>c.name.toLowerCase()===cat.toLowerCase());if(!found)data.push({name:cat,icon:"•",items:[]});else cat=found.name;}let c=data.find(c=>c.name===cat);if(!c)return;let item={id:editing?.id||String(Date.now())+"-"+Math.random().toString(36).slice(2,7),name:$("entry-name").value.trim(),ext:$("entry-ext").value.trim()};if(editing){let old=data.find(x=>x.name===editing.category);old.items=old.items.filter(x=>x.id!==editing.id);favorites=favorites.filter(k=>k!==editing.category+"|"+editing.id);}c.items.push(item);save();$("modal").classList.remove("open");refresh();};
+$("add-entry").onclick=()=>openForm();$("cancel").onclick=()=>$("modal").classList.remove("open");$("modal").onclick=e=>{if(e.target===$("modal"))$("modal").classList.remove("open")};
+$("search").oninput=search;$("back").onclick=()=>{show("home");$("search").value=""};$("departments-tab").onclick=()=>{show("home");$("search").value=""};$("favorites-tab").onclick=renderFav;
+$("backup").onclick=()=>{let blob=new Blob([JSON.stringify({data,favorites},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hospital-directory-backup.json";a.click();URL.revokeObjectURL(a.href)};
+$("restore").onclick=()=>$("restore-file").click();$("restore-file").onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!Array.isArray(x.data))throw 0;data=x.data;favorites=Array.isArray(x.favorites)?x.favorites:[];save();refresh();alert("Backup restored.")}catch(err){alert("That backup file could not be read.")}e.target.value=""};
+renderHome();show("home");
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body></html>
